@@ -1,0 +1,7 @@
+[package]
+name = "SIR-Model"
+version = "0.1.0"
+authors = ["Nikhil Suresh <nikhilsuresh24@yahoo.com>"]
+edition = "2018"
+
+[dependencies]
