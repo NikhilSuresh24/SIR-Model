@@ -1,6 +1,9 @@
 use std::env::args;
+use gnuplot::{Figure, Caption, Color, Graph};
+
 
 const NUM_STEPS: i32 = 100;
+
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -38,18 +41,18 @@ impl Params {
     }
 }
 
-use gnuplot::{Figure, Caption, Color};
-
-let v = vec[1..NUM_STEPS];
-let mut fg = Figure::new();
-fg.axes2d()
-	.set_title("SIR", &[])
-	.set_legend(Graph(1), Graph(1), &[], &[])
-	.set_x_label("Time", &[])
-	.set_y_label("y_label", &[])
-	.lines(
-		&v,
-		&S,
-		&[Caption("Parabowla")],
-	);
-fg.show();
+fn create_graph(s: &Vec<f32>) {
+    let v = vec![1..NUM_STEPS];
+    let mut fg = Figure::new();
+    fg.axes2d()
+        .set_title("SIR", &[])
+        .set_legend(Graph(1.0), Graph(1.0), &[], &[])
+        .set_x_label("Time", &[])
+        .set_y_label("y_label", &[])
+        .lines(
+            &v,
+            &s,
+            &[Caption("Parabowla")],
+        );
+    fg.show();
+}
