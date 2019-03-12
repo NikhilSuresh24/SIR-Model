@@ -37,3 +37,19 @@ impl Params {
         }
     }
 }
+
+use gnuplot::{Figure, Caption, Color};
+
+let v = vec[1..NUM_STEPS];
+let mut fg = Figure::new();
+fg.axes2d()
+	.set_title("SIR", &[])
+	.set_legend(Graph(1), Graph(1), &[], &[])
+	.set_x_label("Time", &[])
+	.set_y_label("y_label", &[])
+	.lines(
+		&v,
+		&S,
+		&[Caption("Parabowla")],
+	);
+fg.show();
