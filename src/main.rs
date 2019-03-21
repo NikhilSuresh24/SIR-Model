@@ -17,6 +17,7 @@ fn main() {
         step(&mut s, &mut i, &mut r, &mut d, params.beta, params.gamma, params.dt, params.alpha);
     }
     create_graph(&s, &i, &r, &d);
+    //print!("{},d);
 }
 
 fn step(s: &mut Vec<f32>, i: &mut Vec<f32>, r: &mut Vec<f32>, d: &mut Vec<f32>, dt: f32, beta: f32, gamma: f32, alpha: f32) {
