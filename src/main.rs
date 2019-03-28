@@ -5,8 +5,6 @@ use std::env::args;
 use std::ops::Sub;
 use std::{f32, thread, time};
 
-const NUM_STEPS: i32 = 100;
-const I_POP_PERCENT: f32 = 0.003;
 const I_START_POP: f32 = 2.0;
 const R_START_POP: f32 = 0.0;
 const MIN_POP: f32 = 0.0;
@@ -30,8 +28,6 @@ fn main() {
     let hi = 1.0 - 1.0 / br; //Herd Immunity Threshold
     println!("Basic Reproductive Ratio: {}", br);
     println!("Herd Immunity Threshold: {}", hi);
-    // for _iter in 1..=NUM_STEPS {
-    println!("{}", i[i.len() - 1]);
     while i[i.len() - 1] > 0.5 {
         let start = time::Instant::now();
         step(
@@ -46,20 +42,12 @@ fn main() {
             params.dt,
         );
         if start.elapsed() < WAIT_TIME {
-            // println!("{0}: {1:?}", i.len(), start.elapsed());
-            // thread::sleep(WAIT_TIME.sub(start.elapsed()));
+            thread::sleep(WAIT_TIME.sub(start.elapsed()));
         }
-        update_graph(&mut fg, &s, &i, &r, &d, &params.dt);
+        update_graph(&mut fg, &s, &i, &r, &d, params.dt);
     }
-    // fg.close();
-    // println!("Closing time");
-    // println!("{:?}", i);
-    //print!("{}:,d);
 }
 
-// fn init_graphics(total_population: &f32) {
-//     for _iter in 1..=total
-// }
 #[allow(clippy::too_many_arguments)]
 fn step(
     s: &mut Vec<f32>,
@@ -73,22 +61,11 @@ fn step(
     dt: f32,
 ) {
     let last_idx = s.len() - 1;
-    // println!("{}", beta * dt * s[last_idx] * i[last_idx]);
     s.push(
         MIN_POP.max(s[last_idx] - beta * dt * s[last_idx] * i[last_idx] - s[last_idx] * delta * dt),
     );
-    // println!(
-    //     "{0}, {1}, {2}, {3}, {4}, {5}",
-    //     (beta * s[last_idx] - gamma - alpha) * i[last_idx] * dt,
-    //     dt,
-    //     dt * s[last_idx],
-    //     delta * s[last_idx] * dt,
-    //     s[last_idx],
-    //     i[last_idx]
-    // );
     i.push(MIN_POP.max(
-        i[last_idx] + (beta * s[last_idx] - gamma - alpha) * i[last_idx] * dt
-            - delta * s[last_idx] * dt,
+        i[last_idx] + (beta * s[last_idx] - gamma) * i[last_idx] * dt - delta * s[last_idx] * dt,
     ));
     r.push(MIN_POP.max(r[last_idx] + gamma * i[last_idx] * dt + s[last_idx] * delta * dt));
     d.push(MIN_POP.max(d[last_idx] + i[last_idx] * alpha * dt));
@@ -144,11 +121,12 @@ fn init_graph() -> Figure {
         .set_legend(Graph(1.0), Graph(1.0), &[], &[])
         .set_x_label("Time", &[])
         .set_y_label("Number of People", &[]);
+    fg.set_terminal(&"pngcairo", &"test2.png");
     fg.show();
     fg
 }
 
-fn update_graph(fg: &mut Figure, s: &[f32], i: &[f32], r: &[f32], d: &[f32], dt: &f32) {
+fn update_graph(fg: &mut Figure, s: &[f32], i: &[f32], r: &[f32], d: &[f32], dt: f32) {
     let x_axis: &Vec<f32> = &(1..=s.len() as i32).map(|x| x as f32 * dt).collect();
     fg.clear_axes();
     fg.axes2d()
