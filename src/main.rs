@@ -121,7 +121,7 @@ fn init_graph() -> Figure {
         .set_legend(Graph(1.0), Graph(1.0), &[], &[])
         .set_x_label("Time", &[])
         .set_y_label("Number of People", &[]);
-    fg.set_terminal(&"pngcairo", &"test2.png");
+    // fg.set_terminal(&"pngcairo", &"test2.png");
     fg.show();
     fg
 }
