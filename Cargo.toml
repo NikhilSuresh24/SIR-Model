@@ -1,8 +1,10 @@
 [package]
-name = "SIR-Model"
+name = "sir_model"
 version = "0.1.0"
 authors = ["Nikhil Suresh <nikhilsuresh24@yahoo.com>"]
 edition = "2018"
 
 [dependencies]
 gnuplot = "0.0.29"
+image = "0.21.0"
+piston2d-graphics = "0.30.0"

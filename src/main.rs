@@ -1,11 +1,16 @@
-use gnuplot::{AutoOption::Fix, AxesCommon, Caption, Color, Figure, Graph, TickOption::Mirror};
-// use gnuplot::*;
+use gnuplot::{AxesCommon, Caption, Color, Figure, Graph};
+extern crate graphics;
+extern crate image;
 use std::env::args;
+use std::ops::Sub;
+use std::{f32, thread, time};
 
 const NUM_STEPS: i32 = 100;
-const I_POP_PERCENT: f32 = 0.001;
+const I_POP_PERCENT: f32 = 0.003;
+const I_START_POP: f32 = 2.0;
 const R_START_POP: f32 = 0.0;
 const MIN_POP: f32 = 0.0;
+const WAIT_TIME: time::Duration = time::Duration::from_millis(125);
 
 fn main() {
     let args: Vec<String> = args().collect();
@@ -14,11 +19,21 @@ fn main() {
     println!("gamma: {}", params.gamma);
     println!("alpha: {}", params.alpha);
     println!("dt: {}", params.dt);
-    let mut s: Vec<f32> = vec![(params.total_population * (1.0 - I_POP_PERCENT)).round()];
-    let mut i: Vec<f32> = vec![(params.total_population * I_POP_PERCENT).round()];
+    println!("delta: {}", params.delta);
+
+    let mut s: Vec<f32> = vec![params.total_population - I_START_POP];
+    let mut i: Vec<f32> = vec![I_START_POP];
     let mut r: Vec<f32> = vec![R_START_POP];
     let mut d: Vec<f32> = vec![0.0];
-    for _iter in 1..=NUM_STEPS {
+    let mut fg = init_graph();
+    let br = params.beta * s[0] / params.gamma; // basic reproductive ratio
+    let hi = 1.0 - 1.0 / br; //Herd Immunity Threshold
+    println!("Basic Reproductive Ratio: {}", br);
+    println!("Herd Immunity Threshold: {}", hi);
+    // for _iter in 1..=NUM_STEPS {
+    println!("{}", i[i.len() - 1]);
+    while i[i.len() - 1] > 0.5 {
+        let start = time::Instant::now();
         step(
             &mut s,
             &mut i,
@@ -26,50 +41,56 @@ fn main() {
             &mut d,
             params.beta,
             params.gamma,
-            params.dt,
             params.alpha,
+            params.delta,
+            params.dt,
         );
+        if start.elapsed() < WAIT_TIME {
+            // println!("{0}: {1:?}", i.len(), start.elapsed());
+            // thread::sleep(WAIT_TIME.sub(start.elapsed()));
+        }
+        update_graph(&mut fg, &s, &i, &r, &d, &params.dt);
     }
-    let last_idx = NUM_STEPS - 1;
-    // println!(
-    //     "S:{0}, I:{1}, R:{2}, D:{3}",
-    //     s[last_idx], i[last_idx], r[last_idx], d[last_idx]
-    // );
-    // s = s.into_iter().map(|x| x.ln()).collect();
-    // i = i.into_iter().map(|x| x.ln()).collect();
-    // r = r.into_iter().map(|x| x.ln()).collect();
-    // d = d.into_iter().map(|x| x.ln()).collect();
-
-    create_graph(&s, &i, &r, &d);
-    //print!("{},d);
+    // fg.close();
+    // println!("Closing time");
+    // println!("{:?}", i);
+    //print!("{}:,d);
 }
 
+// fn init_graphics(total_population: &f32) {
+//     for _iter in 1..=total
+// }
+#[allow(clippy::too_many_arguments)]
 fn step(
     s: &mut Vec<f32>,
     i: &mut Vec<f32>,
     r: &mut Vec<f32>,
     d: &mut Vec<f32>,
-    dt: f32,
     beta: f32,
     gamma: f32,
     alpha: f32,
+    delta: f32,
+    dt: f32,
 ) {
     let last_idx = s.len() - 1;
-    // println!(
-    //     "B:{0}, dt:{1}, s:{2}, i:{3}, M:{4}",
-    //     beta,
-    //     dt,
-    //     s[last_idx],
-    //     i[last_idx],
-    //     beta * dt * s[last_idx] * i[last_idx]
-    // );
-    // println!("addition: {}", beta * dt * s[last_idx] * i[last_idx]);
-    s.push(MIN_POP.max(s[last_idx] - beta * dt * s[last_idx] * i[last_idx]));
-    i.push(
-        (MIN_POP.max(i[last_idx] + (beta * s[last_idx] - gamma) * i[last_idx] * dt)
-            - i[last_idx] * alpha * dt),
+    // println!("{}", beta * dt * s[last_idx] * i[last_idx]);
+    s.push(
+        MIN_POP.max(s[last_idx] - beta * dt * s[last_idx] * i[last_idx] - s[last_idx] * delta * dt),
     );
-    r.push(MIN_POP.max(r[last_idx] + gamma * i[last_idx] * dt));
+    // println!(
+    //     "{0}, {1}, {2}, {3}, {4}, {5}",
+    //     (beta * s[last_idx] - gamma - alpha) * i[last_idx] * dt,
+    //     dt,
+    //     dt * s[last_idx],
+    //     delta * s[last_idx] * dt,
+    //     s[last_idx],
+    //     i[last_idx]
+    // );
+    i.push(MIN_POP.max(
+        i[last_idx] + (beta * s[last_idx] - gamma - alpha) * i[last_idx] * dt
+            - delta * s[last_idx] * dt,
+    ));
+    r.push(MIN_POP.max(r[last_idx] + gamma * i[last_idx] * dt + s[last_idx] * delta * dt));
     d.push(MIN_POP.max(d[last_idx] + i[last_idx] * alpha * dt));
 }
 
@@ -78,6 +99,7 @@ struct Params {
     beta: f32,  //percent of s * infected who become infected
     gamma: f32, //percent of infected who recover
     alpha: f32, //percent of infected who become dead
+    delta: f32, //percent of vaccinated
     dt: f32,
 }
 
@@ -103,7 +125,11 @@ impl Params {
                 .trim()
                 .parse()
                 .expect("Expected a float for alpha, did not get one"),
-            dt: args[5]
+            delta: args[5]
+                .trim()
+                .parse()
+                .expect("Expected a float for alpha, did not get one"),
+            dt: args[6]
                 .trim()
                 .parse()
                 .expect("Expected a float for dt, did not get one"),
@@ -111,18 +137,24 @@ impl Params {
     }
 }
 
-fn create_graph(s: &[f32], i: &[f32], r: &[f32], d: &[f32]) {
-    let v: &Vec<i32> = &(1..NUM_STEPS).collect();
+fn init_graph() -> Figure {
     let mut fg = Figure::new();
-
     fg.axes2d()
         .set_title("SIR", &[])
         .set_legend(Graph(1.0), Graph(1.0), &[], &[])
         .set_x_label("Time", &[])
-        .set_y_label("Number of People", &[])
-        .lines(v, s, &[Caption("S"), Color("yellow")])
-        .lines(v, i, &[Caption("I"), Color("red")])
-        .lines(v, r, &[Caption("R"), Color("green")])
-        .lines(v, d, &[Caption("D"), Color("black")]);
+        .set_y_label("Number of People", &[]);
+    fg.show();
+    fg
+}
+
+fn update_graph(fg: &mut Figure, s: &[f32], i: &[f32], r: &[f32], d: &[f32], dt: &f32) {
+    let x_axis: &Vec<f32> = &(1..=s.len() as i32).map(|x| x as f32 * dt).collect();
+    fg.clear_axes();
+    fg.axes2d()
+        .lines(x_axis, s, &[Caption("S"), Color("blue")])
+        .lines(x_axis, i, &[Caption("I"), Color("red")])
+        .lines(x_axis, r, &[Caption("R"), Color("green")])
+        .lines(x_axis, d, &[Caption("D"), Color("black")]);
     fg.show();
 }
